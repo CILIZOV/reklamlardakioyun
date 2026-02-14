@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defense Line - Protect Your Base!</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        #gameCanvas {
+            display: block;
+            touch-action: none;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #gameStats {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 40px;
+            pointer-events: none;
+        }
+        
+        .stat {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 30px;
+            border-radius: 10px;
+            border: 2px solid #00d4ff;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #00d4ff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.8);
+        }
+        
+        #waveInfo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid #ff6b6b;
+        }
+        
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(26, 26, 46, 0.95);
+            pointer-events: all;
+            z-index: 100;
+        }
+        
+        #gameOverScreen {
+            display: none;
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 72px;
+            color: #00d4ff;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.8);
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+        }
+        
+        .subtitle {
+            font-size: 24px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+        }
+        
+        button {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            padding: 20px 50px;
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            border: 3px solid #00d4ff;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+            transition: all 0.3s ease;
+            pointer-events: all;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.8);
+            background: linear-gradient(135deg, #00f0ff 0%, #00b8e6 100%);
+        }
+        
+        button:active {
+            transform: scale(1.02);
+        }
+        
+        #instructions {
+            color: rgba(255,255,255,0.7);
+            font-size: 18px;
+            margin-top: 30px;
+            text-align: center;
+            line-height: 1.8;
+        }
+        
+        #finalStats {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 48px;
+            color: #ffd700;
+            margin: 20px 0;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+        
+        .buff-popup {
+            position: absolute;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 36px;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+            pointer-events: none;
+            animation: buffPopup 1.5s ease-out forwards;
+            z-index: 50;
+        }
+        
+        @keyframes buffPopup {
+            0% { 
+                opacity: 1; 
+                transform: translateY(0) scale(1);
+            }
+            100% { 
+                opacity: 0; 
+                transform: translateY(-120px) scale(1.3);
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui">
+        <div id="gameStats">
+            <div class="stat">
+                <div class="stat-label">Soldiers</div>
+                <div class="stat-value" id="soldiers">2</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Wave</div>
+                <div class="stat-value" id="wave">1</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Kills</div>
+                <div class="stat-value" id="kills">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Damage</div>
+                <div class="stat-value" id="damage">x1</div>
+            </div>
+        </div>
+        
+        <div id="waveInfo">DEFEND YOUR LINE!</div>
+        
+        <div id="startScreen">
+            <h1>⚔️ DEFENSE LINE</h1>
+            <p class="subtitle">Protect your base from enemy waves!</p>
+            <button id="startBtn">START DEFENSE</button>
+            <p id="instructions">
+                WASD to move • Auto-fire forward<br>
+                Green lane (right): Shoot powerups 5x to collect!<br>
+                Green soldiers 3x → recruit | Purple bullet → +damage<br>
+                Yellow bullet (Wave 5 only) → piercing forever<br>
+                Purple spawns: Wave 5, 8, 11, 14...
+            </p>
+        </div>
+        
+        <div id="gameOverScreen">
+            <h1>DEFENSE BREACHED!</h1>
+            <div id="finalStats"></div>
+            <button id="restartBtn">TRY AGAIN</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Game configuration
+        const config = {
+            roadWidth: 14.4, // Increased by 20% (12 * 1.2)
+            mainRoadWidth: 12, // Original road width
+            powerupLaneWidth: 2.4, // 20% of original (green lane)
+            roadLength: 50,
+            enemySpawnDistance: -35,
+            buffSpawnDistance: -10,
+            playerZPosition: 5,
+            fireRate: 500, // Slower fire rate
+            bulletSpeed: 1.2, // Faster bullets
+        };
+
+        // Game state
+        let gameState = {
+            soldiers: 2, // Start with 2 soldiers
+            wave: 1,
+            kills: 0,
+            isPlaying: false,
+            enemies: [],
+            recruits: [],
+            bullets: [],
+            powerups: [], // Power bullets and piercing bullets
+            lastFireTime: 0,
+            enemiesPerWave: 5,
+            waveActive: false,
+            enemiesSpawned: 0,
+            playerX: 0,
+            playerZ: config.playerZPosition,
+            moveSpeed: 0.15,
+            damageMultiplier: 1, // Increases with Power Bullet
+            hasPiercing: false, // Piercing Bullet ability
+        };
+        
+        // Keyboard state
+        const keys = {
+            w: false,
+            a: false,
+            s: false,
+            d: false,
+        };
+
+        // Three.js setup
+        const canvas = document.getElementById('gameCanvas');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a1a);
+        scene.fog = new THREE.Fog(0x0a0a1a, 20, 60);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 12, config.playerZPosition + 8);
+        camera.lookAt(0, 0, config.playerZPosition - 5);
+
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        directionalLight.position.set(5, 15, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.camera.left = -20;
+        directionalLight.shadow.camera.right = 20;
+        directionalLight.shadow.camera.top = 20;
+        directionalLight.shadow.camera.bottom = -20;
+        scene.add(directionalLight);
+
+        // Rim light
+        const rimLight = new THREE.DirectionalLight(0x00d4ff, 0.3);
+        rimLight.position.set(-10, 5, -20);
+        scene.add(rimLight);
+
+        // Create main battlefield (gray)
+        const mainRoadGeometry = new THREE.PlaneGeometry(config.mainRoadWidth, config.roadLength);
+        const mainRoadMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x1a1a2e,
+            roughness: 0.9,
+            metalness: 0.1,
+        });
+        const mainRoad = new THREE.Mesh(mainRoadGeometry, mainRoadMaterial);
+        mainRoad.rotation.x = -Math.PI / 2;
+        mainRoad.position.y = 0;
+        mainRoad.position.x = -config.powerupLaneWidth / 2; // Shift left to make room for powerup lane
+        mainRoad.position.z = -config.roadLength / 2 + config.playerZPosition;
+        mainRoad.receiveShadow = true;
+        scene.add(mainRoad);
+        
+        // Create powerup lane (green) on the right
+        const powerupLaneGeometry = new THREE.PlaneGeometry(config.powerupLaneWidth, config.roadLength);
+        const powerupLaneMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x27ae60,
+            roughness: 0.9,
+            metalness: 0.1,
+            emissive: 0x27ae60,
+            emissiveIntensity: 0.1,
+        });
+        const powerupLane = new THREE.Mesh(powerupLaneGeometry, powerupLaneMaterial);
+        powerupLane.rotation.x = -Math.PI / 2;
+        powerupLane.position.y = 0;
+        powerupLane.position.x = config.mainRoadWidth / 2; // Right side position
+        powerupLane.position.z = -config.roadLength / 2 + config.playerZPosition;
+        powerupLane.receiveShadow = true;
+        scene.add(powerupLane);
+        
+        // Lane divider line (at boundary between main road and powerup lane)
+        const dividerGeometry = new THREE.BoxGeometry(0.1, 0.3, config.roadLength);
+        const dividerMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.3,
+        });
+        const divider = new THREE.Mesh(dividerGeometry, dividerMaterial);
+        const dividerX = -config.powerupLaneWidth / 2 + config.mainRoadWidth / 2;
+        divider.position.set(dividerX, 0.15, -config.roadLength / 2 + config.playerZPosition);
+        scene.add(divider);
+        
+        // Combined road for raycasting
+        const road = mainRoad;
+
+        // Defense line
+        const defenseLineGeometry = new THREE.BoxGeometry(config.roadWidth, 0.2, 0.5);
+        const defenseLineMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x00d4ff,
+            emissive: 0x00d4ff,
+            emissiveIntensity: 0.5,
+        });
+        const defenseLine = new THREE.Mesh(defenseLineGeometry, defenseLineMaterial);
+        defenseLine.position.set(0, 0.1, config.playerZPosition);
+        scene.add(defenseLine);
+
+        // Player soldiers group
+        const soldiers = new THREE.Group();
+        scene.add(soldiers);
+
+        function createSoldier(x, z) {
+            const soldier = new THREE.Group();
+            
+            const bodyGeometry = new THREE.BoxGeometry(0.4, 0.8, 0.4);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x00d4ff,
+                emissive: 0x00d4ff,
+                emissiveIntensity: 0.2,
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.4;
+            body.castShadow = true;
+            soldier.add(body);
+            
+            const headGeometry = new THREE.SphereGeometry(0.25, 8, 8);
+            const head = new THREE.Mesh(headGeometry, bodyMaterial);
+            head.position.y = 1;
+            head.castShadow = true;
+            soldier.add(head);
+            
+            soldier.position.set(x, 0, z);
+            soldiers.add(soldier);
+            return soldier;
+        }
+
+        function updateSoldiers() {
+            // Clear existing soldiers
+            while(soldiers.children.length > 0) {
+                soldiers.remove(soldiers.children[0]);
+            }
+            
+            // Create soldiers in multiple rows to fit arena
+            const soldierCount = gameState.soldiers;
+            const spacing = 0.7;
+            const soldiersPerRow = 8; // Max soldiers per row
+            const rowSpacing = 0.9;
+            
+            for (let i = 0; i < soldierCount; i++) {
+                const row = Math.floor(i / soldiersPerRow);
+                const col = i % soldiersPerRow;
+                const soldiersInRow = Math.min(soldiersPerRow, soldierCount - row * soldiersPerRow);
+                const startX = -(soldiersInRow - 1) * spacing / 2;
+                
+                createSoldier(startX + col * spacing, row * rowSpacing);
+            }
+            
+            // Position the group at player position
+            soldiers.position.set(gameState.playerX, 0, gameState.playerZ);
+        }
+
+        // Create enemy
+        function createEnemy(x, z) {
+            const enemy = new THREE.Group();
+            
+            const bodyGeometry = new THREE.BoxGeometry(0.5, 1, 0.5);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff4757,
+                emissive: 0xff4757,
+                emissiveIntensity: 0.3,
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.5;
+            body.castShadow = true;
+            enemy.add(body);
+            
+            const headGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+            const head = new THREE.Mesh(headGeometry, bodyMaterial);
+            head.position.y = 1.2;
+            head.castShadow = true;
+            enemy.add(head);
+            
+            enemy.position.set(x, 0, z);
+            scene.add(enemy);
+            
+            return {
+                mesh: enemy,
+                health: 2 + Math.floor(gameState.wave / 2), // Increase health more significantly
+                speed: 0.03 + gameState.wave * 0.008, // Slower base speed, scales up
+            };
+        }
+
+        // Create recruit (green soldier that needs to be shot 3 times)
+        function createRecruit(x, z) {
+            const recruit = new THREE.Group();
+            
+            const bodyGeometry = new THREE.BoxGeometry(0.5, 1, 0.5);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x00ff88,
+                emissive: 0x00ff88,
+                emissiveIntensity: 0.3,
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.5;
+            body.castShadow = true;
+            recruit.add(body);
+            
+            const headGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+            const head = new THREE.Mesh(headGeometry, bodyMaterial);
+            head.position.y = 1.2;
+            head.castShadow = true;
+            recruit.add(head);
+            
+            recruit.position.set(x, 0, z);
+            scene.add(recruit);
+            
+            return {
+                mesh: recruit,
+                health: 3,
+                maxHealth: 3,
+                speed: 0.06,
+                collected: false,
+            };
+        }
+
+        // Create Power Bullet powerup (purple bullet - increases damage) - needs 5 shots
+        function createPowerBullet(x, z) {
+            const geometry = new THREE.SphereGeometry(0.5, 16, 16);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0x9b59b6,
+                emissive: 0x9b59b6,
+                emissiveIntensity: 1,
+            });
+            const powerup = new THREE.Mesh(geometry, material);
+            powerup.position.set(x, 0.6, z);
+            powerup.castShadow = true;
+            scene.add(powerup);
+            
+            return {
+                mesh: powerup,
+                type: 'power',
+                health: 5,
+                maxHealth: 5,
+                speed: 0.06,
+                collected: false,
+            };
+        }
+
+        // Create Piercing Bullet powerup (yellow bullet - bullets pierce through) - needs 5 shots
+        function createPiercingBullet(x, z) {
+            const geometry = new THREE.SphereGeometry(0.5, 16, 16);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0xffff00,
+                emissive: 0xffff00,
+                emissiveIntensity: 1,
+            });
+            const powerup = new THREE.Mesh(geometry, material);
+            powerup.position.set(x, 0.6, z);
+            powerup.castShadow = true;
+            scene.add(powerup);
+            
+            return {
+                mesh: powerup,
+                type: 'piercing',
+                health: 5,
+                maxHealth: 5,
+                speed: 0.06,
+                collected: false,
+            };
+        }
+
+        // Create Alpha Enemy (appears after wave 5)
+        function createAlphaEnemy(x, z) {
+            const enemy = new THREE.Group();
+            
+            const bodyGeometry = new THREE.BoxGeometry(0.8, 1.6, 0.8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff6b35,
+                emissive: 0xff6b35,
+                emissiveIntensity: 0.4,
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.8;
+            body.castShadow = true;
+            enemy.add(body);
+            
+            const headGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+            const head = new THREE.Mesh(headGeometry, bodyMaterial);
+            head.position.y = 2;
+            head.castShadow = true;
+            enemy.add(head);
+            
+            enemy.position.set(x, 0, z);
+            scene.add(enemy);
+            
+            // Health bar background
+            const healthBarBg = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.2, 0.15),
+                new THREE.MeshBasicMaterial({ color: 0x333333 })
+            );
+            healthBarBg.position.set(x, 2.8, z);
+            healthBarBg.lookAt(camera.position);
+            scene.add(healthBarBg);
+            
+            // Health bar foreground
+            const healthBarFg = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.2, 0.15),
+                new THREE.MeshBasicMaterial({ color: 0xff6b35 })
+            );
+            healthBarFg.position.set(x, 2.8, z + 0.01);
+            healthBarFg.lookAt(camera.position);
+            scene.add(healthBarFg);
+            
+            return {
+                mesh: enemy,
+                health: 5 + Math.floor(gameState.wave / 3),
+                maxHealth: 5 + Math.floor(gameState.wave / 3),
+                speed: 0.04 + gameState.wave * 0.005,
+                healthBarBg: healthBarBg,
+                healthBarFg: healthBarFg,
+                isAlpha: true,
+            };
+        }
+
+        // Create Elite Enemy (appears later)
+        function createEliteEnemy(x, z) {
+            const enemy = new THREE.Group();
+            
+            const bodyGeometry = new THREE.BoxGeometry(1.2, 2.4, 1.2);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8b0000,
+                emissive: 0x8b0000,
+                emissiveIntensity: 0.5,
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 1.2;
+            body.castShadow = true;
+            enemy.add(body);
+            
+            const headGeometry = new THREE.SphereGeometry(0.7, 8, 8);
+            const head = new THREE.Mesh(headGeometry, bodyMaterial);
+            head.position.y = 3;
+            head.castShadow = true;
+            enemy.add(head);
+            
+            enemy.position.set(x, 0, z);
+            scene.add(enemy);
+            
+            // Health bar background
+            const healthBarBg = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.8, 0.2),
+                new THREE.MeshBasicMaterial({ color: 0x333333 })
+            );
+            healthBarBg.position.set(x, 4, z);
+            healthBarBg.lookAt(camera.position);
+            scene.add(healthBarBg);
+            
+            // Health bar foreground
+            const healthBarFg = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.8, 0.2),
+                new THREE.MeshBasicMaterial({ color: 0xff0000 })
+            );
+            healthBarFg.position.set(x, 4, z + 0.01);
+            healthBarFg.lookAt(camera.position);
+            scene.add(healthBarFg);
+            
+            return {
+                mesh: enemy,
+                health: 10 + Math.floor(gameState.wave / 2),
+                maxHealth: 10 + Math.floor(gameState.wave / 2),
+                speed: 0.03 + gameState.wave * 0.004,
+                healthBarBg: healthBarBg,
+                healthBarFg: healthBarFg,
+                isElite: true,
+            };
+        }
+
+        // Create bullet
+        function createBullet(startX, startZ, targetX, targetZ) {
+            const geometry = new THREE.SphereGeometry(0.15, 8, 8);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0xffff00,
+                emissive: 0xffff00,
+                emissiveIntensity: 1,
+            });
+            const bullet = new THREE.Mesh(geometry, material);
+            bullet.position.set(startX, 0.5, startZ);
+            scene.add(bullet);
+            
+            const dx = targetX - startX;
+            const dz = targetZ - startZ;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            
+            return {
+                mesh: bullet,
+                directionX: dx / distance,
+                directionZ: dz / distance,
+                speed: config.bulletSpeed,
+            };
+        }
+
+        // Spawn wave with exact difficulty pattern
+        function spawnWave() {
+            gameState.waveActive = true;
+            gameState.enemiesSpawned = 0;
+            
+            // Exact enemy count pattern: 20, 35, 70, 140, 280...
+            let enemyCount;
+            if (gameState.wave === 1) {
+                enemyCount = 20;
+            } else if (gameState.wave === 2) {
+                enemyCount = 35;
+            } else {
+                // Double each wave after wave 2
+                enemyCount = 35 * Math.pow(2, gameState.wave - 2);
+            }
+            
+            // MSP (green soldiers) pattern: 3, 3, 4, 5, 6...
+            const mspCount = gameState.wave <= 2 ? 3 : (2 + gameState.wave);
+            
+            // Power Bullet (purple) - every 3 waves starting from wave 5 (5, 8, 11, 14...)
+            const powerBulletCount = (gameState.wave >= 5 && (gameState.wave - 5) % 3 === 0) ? 1 : 0;
+            
+            // Piercing Bullet (yellow) - ONLY wave 5, never again
+            const piercingBulletCount = gameState.wave === 5 ? 1 : 0;
+            
+            gameState.enemiesPerWave = enemyCount;
+            
+            // Calculate special enemy distribution
+            const alphaCount = gameState.wave >= 5 ? Math.floor(enemyCount * 0.15) : 0;
+            const eliteCount = gameState.wave >= 8 ? Math.floor(enemyCount * 0.1) : 0;
+            const normalCount = enemyCount - alphaCount - eliteCount;
+            
+            document.getElementById('waveInfo').textContent = `WAVE ${gameState.wave}`;
+            
+            let spawnedNormal = 0;
+            let spawnedAlpha = 0;
+            let spawnedElite = 0;
+            let spawnedMSP = 0;
+            let spawnedPowerBullet = 0;
+            let spawnedPiercingBullet = 0;
+            
+            // Spawn all enemies + powerups in 15 seconds
+            const waveDuration = 15000; // 15 seconds
+            const totalSpawns = enemyCount + mspCount + powerBulletCount + piercingBulletCount;
+            const spawnDelay = waveDuration / totalSpawns;
+            
+            const spawnInterval = setInterval(() => {
+                if (!gameState.isPlaying) {
+                    clearInterval(spawnInterval);
+                    return;
+                }
+                
+                // Enemy spawn position (main road - left side, centered at -1.2)
+                const enemyX = -config.powerupLaneWidth / 2 + (Math.random() - 0.5) * (config.mainRoadWidth - 2);
+                const enemyZ = config.enemySpawnDistance + (Math.random() - 0.5) * 15;
+                
+                // Powerup spawn position (green lane - right side, centered at +6)
+                const powerupX = config.mainRoadWidth / 2 + (Math.random() - 0.5) * (config.powerupLaneWidth - 0.8);
+                const powerupZ = config.enemySpawnDistance + (Math.random() - 0.5) * 15;
+                
+                // Spawn powerups in green lane (lower chance to spawn early)
+                if (spawnedPowerBullet < powerBulletCount && Math.random() < 0.08) {
+                    gameState.powerups.push(createPowerBullet(powerupX, powerupZ));
+                    spawnedPowerBullet++;
+                }
+                else if (spawnedPiercingBullet < piercingBulletCount && Math.random() < 0.08) {
+                    gameState.powerups.push(createPiercingBullet(powerupX, powerupZ));
+                    spawnedPiercingBullet++;
+                }
+                // Spawn MSP in green lane
+                else if (spawnedMSP < mspCount && Math.random() < 0.15) {
+                    gameState.recruits.push(createRecruit(powerupX, powerupZ));
+                    spawnedMSP++;
+                }
+                // Spawn enemies in main road
+                else if (gameState.enemiesSpawned < enemyCount) {
+                    // Determine enemy type
+                    if (spawnedElite < eliteCount && Math.random() < 0.15) {
+                        gameState.enemies.push(createEliteEnemy(enemyX, enemyZ));
+                        spawnedElite++;
+                    } else if (spawnedAlpha < alphaCount && Math.random() < 0.25) {
+                        gameState.enemies.push(createAlphaEnemy(enemyX, enemyZ));
+                        spawnedAlpha++;
+                    } else if (spawnedNormal < normalCount) {
+                        gameState.enemies.push(createEnemy(enemyX, enemyZ));
+                        spawnedNormal++;
+                    } else if (spawnedAlpha < alphaCount) {
+                        gameState.enemies.push(createAlphaEnemy(enemyX, enemyZ));
+                        spawnedAlpha++;
+                    } else if (spawnedElite < eliteCount) {
+                        gameState.enemies.push(createEliteEnemy(enemyX, enemyZ));
+                        spawnedElite++;
+                    }
+                    
+                    gameState.enemiesSpawned++;
+                }
+                
+                // Stop when all spawned
+                const allSpawned = gameState.enemiesSpawned >= enemyCount && 
+                                   spawnedMSP >= mspCount &&
+                                   spawnedPowerBullet >= powerBulletCount &&
+                                   spawnedPiercingBullet >= piercingBulletCount;
+                if (allSpawned) {
+                    clearInterval(spawnInterval);
+                }
+            }, spawnDelay);
+        }
+
+        // Show recruit popup
+        function showRecruitPopup(count) {
+            const popup = document.createElement('div');
+            popup.className = 'buff-popup';
+            popup.textContent = `+${count} SOLDIER${count > 1 ? 'S' : ''}!`;
+            popup.style.left = '50%';
+            popup.style.top = '40%';
+            popup.style.transform = 'translate(-50%, -50%)';
+            document.getElementById('ui').appendChild(popup);
+            
+            setTimeout(() => popup.remove(), 1500);
+        }
+
+        // Show powerup popup
+        function showPowerupPopup(text, color) {
+            const popup = document.createElement('div');
+            popup.className = 'buff-popup';
+            popup.textContent = text;
+            popup.style.color = color;
+            popup.style.textShadow = `0 0 20px ${color}`;
+            popup.style.left = '50%';
+            popup.style.top = '40%';
+            popup.style.transform = 'translate(-50%, -50%)';
+            document.getElementById('ui').appendChild(popup);
+            
+            setTimeout(() => popup.remove(), 1500);
+        }
+
+        // Create simple bullet sound
+
+        // Auto-fire bullets forward
+        function autoFire() {
+            const now = Date.now();
+            if (now - gameState.lastFireTime < config.fireRate) return;
+            gameState.lastFireTime = now;
+            
+            // Fire from all soldiers forward
+            soldiers.children.forEach(soldier => {
+                const soldierWorldPos = new THREE.Vector3();
+                soldier.getWorldPosition(soldierWorldPos);
+                
+                // Fire straight forward (toward negative Z)
+                gameState.bullets.push(createBullet(
+                    soldierWorldPos.x, 
+                    soldierWorldPos.z, 
+                    soldierWorldPos.x, 
+                    soldierWorldPos.z - 10  // Shoot forward
+                ));
+            });
+        }
+
+        // Update game
+        function updateGame() {
+            // Auto-fire
+            autoFire();
+            
+            // Move enemies toward player and update health bars
+            for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+                const enemy = gameState.enemies[i];
+                enemy.mesh.position.z += enemy.speed;
+                enemy.mesh.rotation.y += 0.05;
+                
+                // Update health bars for special enemies
+                if (enemy.healthBarBg && enemy.healthBarFg) {
+                    enemy.healthBarBg.position.set(
+                        enemy.mesh.position.x,
+                        enemy.mesh.position.y + (enemy.isElite ? 4 : 2.8),
+                        enemy.mesh.position.z
+                    );
+                    enemy.healthBarFg.position.set(
+                        enemy.mesh.position.x,
+                        enemy.mesh.position.y + (enemy.isElite ? 4 : 2.8),
+                        enemy.mesh.position.z + 0.01
+                    );
+                    
+                    // Update health bar width
+                    const healthPercent = enemy.health / enemy.maxHealth;
+                    const maxWidth = enemy.isElite ? 1.8 : 1.2;
+                    enemy.healthBarFg.scale.x = healthPercent;
+                    enemy.healthBarFg.position.x = enemy.mesh.position.x - (maxWidth / 2) * (1 - healthPercent);
+                    
+                    // Make health bars face camera
+                    enemy.healthBarBg.lookAt(camera.position);
+                    enemy.healthBarFg.lookAt(camera.position);
+                }
+                
+                // Check if enemy reached defense line
+                if (enemy.mesh.position.z >= config.playerZPosition) {
+                    scene.remove(enemy.mesh);
+                    if (enemy.healthBarBg) scene.remove(enemy.healthBarBg);
+                    if (enemy.healthBarFg) scene.remove(enemy.healthBarFg);
+                    gameState.enemies.splice(i, 1);
+                    
+                    // Stronger enemies do more damage
+                    const damage = enemy.isElite ? 3 : (enemy.isAlpha ? 2 : 1);
+                    gameState.soldiers -= damage;
+                    
+                    if (gameState.soldiers <= 0) {
+                        endGame();
+                        return;
+                    }
+                    
+                    updateSoldiers();
+                    document.getElementById('soldiers').textContent = gameState.soldiers;
+                }
+            }
+            
+            // Move recruits toward player
+            for (let i = gameState.recruits.length - 1; i >= 0; i--) {
+                const recruit = gameState.recruits[i];
+                recruit.mesh.position.z += recruit.speed;
+                recruit.mesh.rotation.y += 0.03;
+                
+                // Remove if passed player too far
+                if (recruit.mesh.position.z > config.playerZPosition + 10) {
+                    scene.remove(recruit.mesh);
+                    gameState.recruits.splice(i, 1);
+                }
+            }
+            
+            // Move powerups toward player
+            for (let i = gameState.powerups.length - 1; i >= 0; i--) {
+                const powerup = gameState.powerups[i];
+                powerup.mesh.position.z += powerup.speed;
+                powerup.mesh.rotation.y += 0.05;
+                powerup.mesh.rotation.x += 0.03;
+                
+                // Pulse effect based on health
+                const pulseScale = 1 + Math.sin(Date.now() * 0.005) * 0.1;
+                powerup.mesh.scale.set(pulseScale, pulseScale, pulseScale);
+                
+                // Remove if passed player too far without being shot
+                if (powerup.mesh.position.z > config.playerZPosition + 10) {
+                    scene.remove(powerup.mesh);
+                    gameState.powerups.splice(i, 1);
+                }
+            }
+            
+            // Move and check bullets
+            for (let i = gameState.bullets.length - 1; i >= 0; i--) {
+                const bullet = gameState.bullets[i];
+                bullet.mesh.position.x += bullet.directionX * bullet.speed;
+                bullet.mesh.position.z += bullet.directionZ * bullet.speed;
+                
+                // Remove if too far
+                if (bullet.mesh.position.z < config.enemySpawnDistance - 10) {
+                    scene.remove(bullet.mesh);
+                    gameState.bullets.splice(i, 1);
+                    continue;
+                }
+                
+                let bulletHit = false;
+                
+                // Check collision with powerups (shoot to collect)
+                for (let j = gameState.powerups.length - 1; j >= 0; j--) {
+                    const powerup = gameState.powerups[j];
+                    if (powerup.collected) continue;
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(bullet.mesh.position.x - powerup.mesh.position.x, 2) +
+                        Math.pow(bullet.mesh.position.z - powerup.mesh.position.z, 2)
+                    );
+                    
+                    if (distance < 0.8) {
+                        powerup.health -= gameState.damageMultiplier;
+                        scene.remove(bullet.mesh);
+                        gameState.bullets.splice(i, 1);
+                        bulletHit = true;
+                        
+                        // Flash powerup when hit
+                        powerup.mesh.material.emissiveIntensity = 2;
+                        setTimeout(() => {
+                            if (powerup.mesh.material) powerup.mesh.material.emissiveIntensity = 1;
+                        }, 100);
+                        
+                        if (powerup.health <= 0) {
+                            // Powerup collected!
+                            powerup.collected = true;
+                            scene.remove(powerup.mesh);
+                            gameState.powerups.splice(j, 1);
+                            
+                            if (powerup.type === 'power') {
+                                gameState.damageMultiplier += 1;
+                                document.getElementById('damage').textContent = `x${gameState.damageMultiplier}`;
+                                showPowerupPopup('POWER BULLET! +1 DAMAGE', '#9b59b6');
+                            } else if (powerup.type === 'piercing') {
+                                gameState.hasPiercing = true;
+                                showPowerupPopup('PIERCING BULLETS!', '#ffff00');
+                            }
+                        }
+                        break;
+                    }
+                }
+                
+                if (bulletHit) continue;
+                
+                // Check collision with recruits (green soldiers)
+                for (let j = gameState.recruits.length - 1; j >= 0; j--) {
+                    const recruit = gameState.recruits[j];
+                    if (recruit.collected) continue;
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(bullet.mesh.position.x - recruit.mesh.position.x, 2) +
+                        Math.pow(bullet.mesh.position.z - recruit.mesh.position.z, 2)
+                    );
+                    
+                    if (distance < 0.8) {
+                        recruit.health--;
+                        scene.remove(bullet.mesh);
+                        gameState.bullets.splice(i, 1);
+                        bulletHit = true;
+                        
+                        // Flash recruit when hit
+                        recruit.mesh.children.forEach(child => {
+                            child.material.emissiveIntensity = 1;
+                            setTimeout(() => {
+                                if (child.material) child.material.emissiveIntensity = 0.3;
+                            }, 100);
+                        });
+                        
+                        if (recruit.health <= 0) {
+                            // Recruit joins your team!
+                            recruit.collected = true;
+                            scene.remove(recruit.mesh);
+                            gameState.recruits.splice(j, 1);
+                            
+                            gameState.soldiers += 1;
+                            updateSoldiers();
+                            document.getElementById('soldiers').textContent = gameState.soldiers;
+                            showRecruitPopup(1);
+                        }
+                        break;
+                    }
+                }
+                
+                if (bulletHit) continue;
+                
+                // Check collision with enemies
+                for (let j = gameState.enemies.length - 1; j >= 0; j--) {
+                    const enemy = gameState.enemies[j];
+                    const distance = Math.sqrt(
+                        Math.pow(bullet.mesh.position.x - enemy.mesh.position.x, 2) +
+                        Math.pow(bullet.mesh.position.z - enemy.mesh.position.z, 2)
+                    );
+                    
+                    if (distance < (enemy.isElite ? 1.5 : (enemy.isAlpha ? 1 : 0.8))) {
+                        // Apply damage with multiplier
+                        enemy.health -= gameState.damageMultiplier;
+                        
+                        // Remove bullet only if not piercing
+                        if (!gameState.hasPiercing) {
+                            scene.remove(bullet.mesh);
+                            gameState.bullets.splice(i, 1);
+                            bulletHit = true;
+                        }
+                        
+                        if (enemy.health <= 0) {
+                            scene.remove(enemy.mesh);
+                            if (enemy.healthBarBg) scene.remove(enemy.healthBarBg);
+                            if (enemy.healthBarFg) scene.remove(enemy.healthBarFg);
+                            gameState.enemies.splice(j, 1);
+                            
+                            // More points for special enemies
+                            const points = enemy.isElite ? 5 : (enemy.isAlpha ? 3 : 1);
+                            gameState.kills += points;
+                            document.getElementById('kills').textContent = gameState.kills;
+                        }
+                        
+                        if (!gameState.hasPiercing) {
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Check if wave complete
+            if (gameState.waveActive && gameState.enemies.length === 0 && gameState.enemiesSpawned >= gameState.enemiesPerWave) {
+                gameState.waveActive = false;
+                gameState.wave++;
+                document.getElementById('wave').textContent = gameState.wave;
+                
+                setTimeout(() => {
+                    if (gameState.isPlaying) {
+                        spawnWave();
+                    }
+                }, 2000); // 2 second break between waves
+            }
+        }
+
+        // Update player movement
+        function updatePlayerMovement() {
+            if (!gameState.isPlaying) return;
+            
+            // Allow movement across entire arena including powerup lane
+            const halfTotalWidth = config.roadWidth / 2 - 0.5;
+            const maxZ = config.playerZPosition + 5;
+            const minZ = config.playerZPosition - 15;
+            
+            if (keys.w) gameState.playerZ -= gameState.moveSpeed;
+            if (keys.s) gameState.playerZ += gameState.moveSpeed;
+            if (keys.a) gameState.playerX -= gameState.moveSpeed;
+            if (keys.d) gameState.playerX += gameState.moveSpeed;
+            
+            // Clamp position to full arena (main road + powerup lane)
+            gameState.playerX = Math.max(-halfTotalWidth, Math.min(halfTotalWidth, gameState.playerX));
+            gameState.playerZ = Math.max(minZ, Math.min(maxZ, gameState.playerZ));
+            
+            // Update soldier group position
+            soldiers.position.set(gameState.playerX, 0, gameState.playerZ);
+        }
+
+        // Keyboard event listeners
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'w') keys.w = true;
+            if (key === 'a') keys.a = true;
+            if (key === 's') keys.s = true;
+            if (key === 'd') keys.d = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'w') keys.w = false;
+            if (key === 'a') keys.a = false;
+            if (key === 's') keys.s = false;
+            if (key === 'd') keys.d = false;
+        });
+
+        // Mouse click - removed, now auto-shooting
+
+        // Animation loop
+        function animate() {
+            if (!gameState.isPlaying) return;
+            requestAnimationFrame(animate);
+            
+            updatePlayerMovement();
+            updateGame();
+            
+            // Camera follows player from above at better angle
+            camera.position.x = gameState.playerX;
+            camera.position.y = 12;
+            camera.position.z = gameState.playerZ + 8;
+            camera.lookAt(gameState.playerX, 0, gameState.playerZ - 5);
+            
+            renderer.render(scene, camera);
+        }
+
+        // Game controls
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            
+            // Reset game state
+            gameState = {
+                soldiers: 2,
+                wave: 1,
+                kills: 0,
+                isPlaying: true,
+                enemies: [],
+                recruits: [],
+                bullets: [],
+                powerups: [],
+                lastFireTime: 0,
+                enemiesPerWave: 5,
+                waveActive: false,
+                enemiesSpawned: 0,
+                playerX: 0,
+                playerZ: config.playerZPosition,
+                moveSpeed: 0.15,
+                damageMultiplier: 1,
+                hasPiercing: false,
+            };
+            
+            // Reset keys
+            keys.w = false;
+            keys.a = false;
+            keys.s = false;
+            keys.d = false;
+            
+            // Clear scene
+            gameState.enemies.forEach(e => {
+                scene.remove(e.mesh);
+                if (e.healthBarBg) scene.remove(e.healthBarBg);
+                if (e.healthBarFg) scene.remove(e.healthBarFg);
+            });
+            gameState.recruits.forEach(r => scene.remove(r.mesh));
+            gameState.bullets.forEach(b => scene.remove(b.mesh));
+            gameState.powerups.forEach(p => scene.remove(p.mesh));
+            
+            // Update UI
+            document.getElementById('soldiers').textContent = gameState.soldiers;
+            document.getElementById('wave').textContent = gameState.wave;
+            document.getElementById('kills').textContent = gameState.kills;
+            document.getElementById('damage').textContent = 'x1';
+            
+            updateSoldiers();
+            spawnWave();
+            
+            animate();
+        }
+
+        function endGame() {
+            gameState.isPlaying = false;
+            
+            document.getElementById('finalStats').innerHTML = `
+                Wave Reached: ${gameState.wave}<br>
+                Total Kills: ${gameState.kills}
+            `;
+            document.getElementById('gameOverScreen').style.display = 'flex';
+        }
+
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            startGame();
+        });
+
+        // Window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initial render
+        renderer.render(scene, camera);
+    </script>
+</body>
+</html>
