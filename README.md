@@ -1,0 +1,2 @@
+# reklamlardakioyun
+Reklamlardaki o oyun
